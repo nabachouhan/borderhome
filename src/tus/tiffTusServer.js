@@ -14,6 +14,8 @@ export const tusServer = new Server({
   datastore: new FileStore({ directory: tempDir }),
 });
 
+const RASTER_DIR = "/data/raster_catalog"; // mounted SAN storage 
+
 /* =====================================================
    HELPERS
 ===================================================== */
@@ -95,10 +97,12 @@ tusServer.on("POST_FINISH", async (req, res, upload) => {
       return;
     }
 
-    const finalDir = path.join(process.cwd(), "raster_catalog", theme);
+    const finalDir = path.join(RASTER_DIR, theme);
+
     fs.mkdirSync(finalDir, { recursive: true });
 
     const finalPath = path.join(finalDir, `${file_name}.tif`);
+
 
     // 🔒 FILESYSTEM PROTECTION
     if (fs.existsSync(finalPath)) {

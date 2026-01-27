@@ -218,16 +218,16 @@ async function verifyTurnstileToken(token, ip) {
       { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
 
-    // if (!verification.data.success) {
-    //   return { ok: false, error: {
-    //     status: 400,
-    //     body: {
-    //       message: "Unusual Activity Detected",
-    //       title: "Try After Some Time",
-    //       icon: "danger",
-    //     }
-    //   }};
-    // }
+    if (!verification.data.success) {
+      return { ok: false, error: {
+        status: 400,
+        body: {
+          message: "Unusual Activity Detected",
+          title: "Try After Some Time",
+          icon: "danger",
+        }
+      }};
+    }
 
     return { ok: true };
   } catch (err) {
@@ -1034,89 +1034,7 @@ router.post("/publish", upload.none(), adminAuthMiddleware, async (req, res) => 
 }
 );
 
-
-// tihf
-// POST /tiffuploads (Upload GeoTIFF as raw file)
-router.post("/tiffuploads", adminAuthMiddleware, tiff_upload.single("uploaded_file"), async (req, res) => {
-  const cleanup = () => {
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-  };
-
-  try {
-    const { file_name, theme, srid } = req.body;
-    console.log(`[TIFF Upload] Starting upload: ${file_name}, theme: ${theme}, SRID: ${srid}`);
-
-    if (!req.file || path.extname(req.file.originalname) !== ".tif") {
-      console.warn(`[TIFF Upload] Invalid file type for ${file_name}`);
-      cleanup();
-      return res.status(400).json({
-        message: "Only .tif files allowed",
-        icon: "error",
-      });
-    }
-    console.log(`[TIFF Upload] Validation successful for ${file_name}`);
-
-    // Check if file_name already exists in the database
-    const client = await poolUser.connect();
-    const query = `
-            SELECT file_name 
-            FROM catalog 
-            WHERE file_name = $1
-        `;
-    const result = await client.query(query, [file_name]);
-    const checkTableExists = result.rows.length > 0;
-
-    if (checkTableExists) {
-      console.warn(`[TIFF Upload] Filename ${file_name} already exists in catalog`);
-      client.release();
-      cleanup();
-      const data = {
-        message: "Shapefile name already exists",
-        title: "Oops?",
-        icon: "danger",
-        redirect: "\\admin\\upload",
-      };
-      return res.status(400).json(data);
-    }
-
-    const rasterDir = path.join("raster_catalog", theme);
-    fs.mkdirSync(rasterDir, { recursive: true });
-
-    const destPath = path.join(rasterDir, `${file_name}.tif`);
-    console.log(`[TIFF Upload] Moving file to: ${destPath}`);
-    fs.renameSync(req.file.path, destPath);
-
-    // DB catalog entry
-    console.log(`[TIFF Upload] Registering ${file_name} in catalog...`);
-    await client.query(
-      `
-        INSERT INTO catalog (file_name, file_type, theme, srid, visibility, is_published)
-        VALUES ($1,'raster',$2,$3,false,false)
-        `,
-      [file_name, theme, srid]
-    );
-    client.release();
-
-    console.log(`[TIFF Upload] Completed successfully for ${file_name}`);
-    return res.status(201).json({
-      message: "GeoTIFF uploaded successfully",
-      icon: "success",
-    });
-  } catch (err) {
-    console.error(err)
-    cleanup();
-    return res.status(500).json({
-      message: err.message,
-      icon: "error",
-    });
-  }
-}
-);
-
-// tiff
-
+// ✅ Route: POST /publish-tiff to  Publish  on geoserver using Geoserver Restapi  (Dashboard, protected by adminAuth)
 // POST /publish-tiff
 router.post("/publish-tiff", upload.none(), adminAuthMiddleware, async (req, res) => {
   const { file_name, workspace, theme } = req.body;
@@ -1151,12 +1069,14 @@ router.post("/publish-tiff", upload.none(), adminAuthMiddleware, async (req, res
     }
 
     // Check if workspace exists
+
+    const RASTER_DIR = "/data/raster_catalog";
     const rasterPath = path.join(
-      __dirname,
-      "../../raster_catalog",
+      RASTER_DIR,
       theme,
       `${file_name}.tif`
     );
+
 
 
     // Create GeoTIFF store

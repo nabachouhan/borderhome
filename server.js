@@ -21,10 +21,10 @@ import { tusServer } from "./src/tus/tiffTusServer.js";
 dotenv.config();
 
 const app = express();
-app.all("/admin/tiffuploads", (req, res) => {
+app.all("/admin/tiffuploads", adminAuthMiddleware, (req, res) => {
   tusServer.handle(req, res);
 });
-app.all("/admin/tiffuploads/*", (req, res) => {
+app.all("/admin/tiffuploads/*", adminAuthMiddleware, (req, res) => {
   tusServer.handle(req, res);
 });
 
