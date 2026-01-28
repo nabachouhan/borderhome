@@ -156,7 +156,10 @@ tusServer.on("POST_FINISH", async (req, res, upload) => {
     }
 
     // ✅ SAFE MOVE
-    fs.renameSync(upload.storage.path, finalPath);
+
+    fs.copyFileSync(upload.storage.path, finalPath);
+    fs.unlinkSync(upload.storage.path);
+
 
     console.log("[TUS] Upload completed:", file_name);
   } catch (err) {

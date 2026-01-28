@@ -21,6 +21,16 @@ import { tusServer } from "./src/tus/tiffTusServer.js";
 dotenv.config();
 
 const app = express();
+
+// ✔ Security header
+app.disable("x-powered-by");
+
+// ✅ GLOBAL middleware FIRST
+app.use(cookieParser());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, "public")));
+
 app.all("/admin/tiffuploads", adminAuthMiddleware, (req, res) => {
   tusServer.handle(req, res);
 });
@@ -29,11 +39,7 @@ app.all("/admin/tiffuploads/*", adminAuthMiddleware, (req, res) => {
 });
 
 // ✔ This removes the header that reveals the server is running Express
-app.disable("x-powered-by");
 
-// Middleware
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(cookieParser());
