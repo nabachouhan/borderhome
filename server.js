@@ -38,11 +38,6 @@ app.all("/admin/tiffuploads/*", adminAuthMiddleware, (req, res) => {
   tusServer.handle(req, res);
 });
 
-// ✔ This removes the header that reveals the server is running Express
-
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.use(cookieParser());
 
 // 🔐 Serve protected folder only if authenticated
 app.use('/admin-assets', adminAuthMiddleware, express.static(path.join(__dirname, 'admin-assets')));
