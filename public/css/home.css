@@ -73,7 +73,7 @@ a {
 
 /* ASSAC Logo – Main Highlight */
 .assac-logo {
-    width: 70px;
+    width: 50px;
     height: auto;
     object-fit: contain;
 }
@@ -118,15 +118,15 @@ a {
 /* Mobile Optimization */
 @media (max-width: 768px) {
     .assac-logo {
-        width: 55px;
+        width: 30px;
     }
 
     .assac-title {
-        font-size: 1rem;
+        font-size: 0.8rem;
     }
 
     .portal-title {
-        font-size: 0.7rem;
+        font-size: 0.5rem;
     }
 
     
@@ -360,7 +360,7 @@ a {
     align-items: center;
     justify-content: center;
     position: relative;
-    background: url('/image/homebg.jpg') no-repeat center center/cover;
+    background: url('/image/bg2.png') no-repeat center center/cover;
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -370,7 +370,7 @@ a {
 .hero-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.65);
+    background: rgba(0, 0, 0, 0.7);
     backdrop-filter: none;
 }
 
@@ -530,6 +530,47 @@ a {
     background-position: center;
     filter: brightness(0.92);
 }
+
+/* About Project Modal */
+.about-modal {
+    background: #020617;
+    color: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.about-modal .modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.about-modal .modal-title {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.about-modal h6 {
+    margin-top: 1.4rem;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.modal-intro {
+    font-size: 1rem;
+    line-height: 1.7;
+    margin-bottom: 1.2rem;
+}
+
+.modal-list {
+    padding-left: 1.2rem;
+}
+
+.modal-list li {
+    margin-bottom: 0.6rem;
+}
+
+.about-modal .modal-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 
 @keyframes mapSlide {
 
@@ -744,6 +785,10 @@ a {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.footer-boxes{
+    padding-left: 100px;
+}
+
 .footer-brand {
     display: flex;
     flex-direction: column;
@@ -765,6 +810,24 @@ a {
     font-size: 1.5rem;
     color: var(--text-primary);
     margin: 0;
+}
+
+.footer-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.footer-title::after {
+    content: '';
+    width: 45px;
+    height: 2px;
+    background: var(--primary);
+    position: absolute;
+    left: 0;
+    bottom: -8px;
 }
 
 .footer-brand p {
@@ -958,6 +1021,9 @@ a {
     .count-number {
         font-size: 2.2rem;
     }
+    .footer-boxes{
+    padding-left: 10px;
+}
 }
 
 @media (max-width: 576px) {
