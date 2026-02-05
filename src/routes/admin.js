@@ -193,57 +193,57 @@ router.get("/", (req, res) => {
 
 //Verifies Cloudflare Turnstile token.
 
-async function verifyTurnstileToken(token, ip) {
-  if (!token) {
-    return {
-      ok: false, error: {
-        status: 400,
-        body: {
-          message: "Turnstile verification missing",
-          title: "Security",
-          icon: "warning",
-        }
-      }
-    };
-  }
+// async function verifyTurnstileToken(token, ip) {
+//   if (!token) {
+//     return {
+//       ok: false, error: {
+//         status: 400,
+//         body: {
+//           message: "Turnstile verification missing",
+//           title: "Security",
+//           icon: "warning",
+//         }
+//       }
+//     };
+//   }
 
-  try {
-    const verification = await axios.post(
-      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-      new URLSearchParams({
-        secret: process.env.TURNSTILE_SECRET_KEY,
-        response: token,
-        remoteip: ip,
-      }),
-      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-    );
+//   try {
+//     const verification = await axios.post(
+//       "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+//       new URLSearchParams({
+//         secret: process.env.TURNSTILE_SECRET_KEY,
+//         response: token,
+//         remoteip: ip,
+//       }),
+//       { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+//     );
 
-    if (!verification.data.success) {
-      return { ok: false, error: {
-        status: 400,
-        body: {
-          message: "Unusual Activity Detected",
-          title: "Try After Some Time",
-          icon: "danger",
-        }
-      }};
-    }
+//     if (!verification.data.success) {
+//       return { ok: false, error: {
+//         status: 400,
+//         body: {
+//           message: "Unusual Activity Detected",
+//           title: "Try After Some Time",
+//           icon: "danger",
+//         }
+//       }};
+//     }
 
-    return { ok: true };
-  } catch (err) {
-    console.error("Turnstile verification error:", err);
-    return {
-      ok: false, error: {
-        status: 500,
-        body: {
-          message: "Something went wrong",
-          title: "Error",
-          icon: "danger",
-        }
-      }
-    };
-  }
-}
+//     return { ok: true };
+//   } catch (err) {
+//     console.error("Turnstile verification error:", err);
+//     return {
+//       ok: false, error: {
+//         status: 500,
+//         body: {
+//           message: "Something went wrong",
+//           title: "Error",
+//           icon: "danger",
+//         }
+//       }
+//     };
+//   }
+// }
 
 async function sendOtpEmail(to, otp) {
   await transporter.sendMail({
