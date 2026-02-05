@@ -10,16 +10,16 @@ function formDataToObject(formData) {
 
 // Generic function to handle form submissions
 const handleFormSubmit = async (event, url) => {
-  event.preventDefault();
+  event.preventDefault(); // Prevent the default form submission
 
-  const formData = new FormData(event.target);
-  const clickedButtonValue = event.submitter?.value || "";
+  const formData = new FormData(event.target); // Create a FormData object from the form
+  const clickedButtonValue = event.submitter.value;
   formData.append("submit", clickedButtonValue);
 
-  const formDataObj = formDataToObject(formData);
+  const formDataObj = formDataToObject(formData); // Convert FormData to an object for logging
   console.log("Submitting to URL:", url, "with data:", formDataObj);
 
-  // Confirm first
+  // First, show confirmation before submitting the data
   const confirmationResult = await Swal.fire({
     title: "Confirm Submission",
     text: "Are you sure you want proceed?",
@@ -29,57 +29,51 @@ const handleFormSubmit = async (event, url) => {
     cancelButtonText: "No!",
   });
 
-  if (!confirmationResult.isConfirmed) return;
-
-  const loader = document.getElementById("loader0");
-  if (loader) loader.style.display = "block";
-
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      redirect: "follow",
-      body: formData,
-    });
-
-    const contentType = response.headers.get("content-type") || "";
-
-    let data;
-
-    if (contentType.includes("application/json")) {
-      data = await response.json();
-    } else {
-      const text = await response.text();
-      throw new Error("Server returned HTML instead of JSON (route/redirect/error)");
-    }
-
-    if (loader) loader.style.display = "none";
-    console.log("Response data:", data);
-
-    if (data && data.title) {
-      const result = await Swal.fire({
-        title: data.title,
-        text: data.message,
-        confirmButtonText: "OK",
-        icon: data.icon || "info",
-      });
-
-      if (result.isConfirmed && data.redirect) {
-        window.location.href = data.redirect;
-      }
-    } else {
-      throw new Error("Unexpected response format");
-    }
-
-  } catch (error) {
-    if (loader) loader.style.display = "none";
-    console.error("Fetch error:", error);
-
-    Swal.fire({
-      title: "Error",
-      text: error.message || "Request failed",
-      icon: "error",
-    });
+  if (!confirmationResult.isConfirmed) {
+    // If the user cancels, exit the function
+    return;
   }
+  document.getElementById("loader0").style.display = "block";
+
+  // Proceed with the fetch request if confirmed
+  await fetch(url, {
+    method: "POST",
+    redirect: "follow",
+    body: formData,
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      document.getElementById("loader0").style.display = "none";
+      console.log("Response data:", data);
+      if (data) {
+        Swal.fire({
+          title: data.title,
+          text: data.message,
+          confirmButtonText: "OK",
+          icon: data.icon,
+        }).then((result) => {
+          if (result.isConfirmed && data.redirect !== undefined) {
+            window.location.href = data.redirect; // Replace with your desired URL
+          }
+        });
+      } else {
+        console.error("Unexpected response format:", data);
+        Swal.fire({
+          title: "Error",
+          text: "Unexpected response format.",
+          icon: "error",
+        });
+      }
+    })
+    .catch((error) => {
+      document.getElementById("loader0").style.display = "none";
+      console.error("Fetch error:", error);
+      Swal.fire({
+        title: "Error",
+        text: `An error occurred: ${error.message}`,
+        icon: "error",
+      });
+    });
 };
 
 // Attach event listeners to each form, passing the appropriate endpoint URL
