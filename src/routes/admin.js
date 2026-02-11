@@ -281,7 +281,7 @@ function isOtpValid(dbOtp, userOtp, time) {
 
 // ✅ Route: GET / (login,get opt )
 
-router.post("/", login.none(), async (req, res) => {
+router.post("/", async (req, res) => {
   const {
     email,
     password,

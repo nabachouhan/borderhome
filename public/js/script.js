@@ -10,16 +10,24 @@ function formDataToObject(formData) {
 
 // Generic function to handle form submissions
 const handleFormSubmit = async (event, url) => {
-  event.preventDefault(); // Prevent the default form submission
+  event.preventDefault();
 
-  const formData = new FormData(event.target); // Create a FormData object from the form
-  const clickedButtonValue = event.submitter.value;
-  formData.append("submit", clickedButtonValue);
+  const form = event.target;
+  const clickedButtonValue = event.submitter?.value;
 
-  const formDataObj = formDataToObject(formData); // Convert FormData to an object for logging
-  console.log("Submitting to URL:", url, "with data:", formDataObj);
+  // Convert form fields to plain object
+  const payload = {};
+  new FormData(form).forEach((value, key) => {
+    payload[key] = value;
+  });
 
-  // First, show confirmation before submitting the data
+  // add submit button value if needed
+  if (clickedButtonValue) {
+    payload.submit = clickedButtonValue;
+  }
+
+  console.log("Submitting to URL:", url, "with data:", payload);
+
   const confirmationResult = await Swal.fire({
     title: "Confirm Submission",
     text: "Are you sure you want proceed?",
@@ -29,52 +37,52 @@ const handleFormSubmit = async (event, url) => {
     cancelButtonText: "No!",
   });
 
-  if (!confirmationResult.isConfirmed) {
-    // If the user cancels, exit the function
-    return;
-  }
+  if (!confirmationResult.isConfirmed) return;
+
   document.getElementById("loader0").style.display = "block";
 
-  // Proceed with the fetch request if confirmed
-  await fetch(url, {
-    method: "POST",
-    redirect: "follow",
-    body: formData,
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      document.getElementById("loader0").style.display = "none";
-      console.log("Response data:", data);
-      if (data) {
-        Swal.fire({
-          title: data.title,
-          text: data.message,
-          confirmButtonText: "OK",
-          icon: data.icon,
-        }).then((result) => {
-          if (result.isConfirmed && data.redirect !== undefined) {
-            window.location.href = data.redirect; // Replace with your desired URL
-          }
-        });
-      } else {
-        console.error("Unexpected response format:", data);
-        Swal.fire({
-          title: "Error",
-          text: "Unexpected response format.",
-          icon: "error",
-        });
-      }
-    })
-    .catch((error) => {
-      document.getElementById("loader0").style.display = "none";
-      console.error("Fetch error:", error);
-      Swal.fire({
-        title: "Error",
-        text: `An error occurred: ${error.message}`,
-        icon: "error",
-      });
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(payload),
     });
+
+    const data = await response.json();
+    document.getElementById("loader0").style.display = "none";
+
+    console.log("Response data:", data);
+
+    if (!response.ok) {
+      throw new Error(data.message || "Request failed");
+    }
+
+    Swal.fire({
+      title: data.title || "Success",
+      text: data.message || "Operation completed",
+      icon: data.icon || "success",
+      confirmButtonText: "OK",
+    }).then((result) => {
+      if (result.isConfirmed && data.redirect) {
+        window.location.href = data.redirect;
+      }
+    });
+
+  } catch (error) {
+    document.getElementById("loader0").style.display = "none";
+    console.error("Fetch error:", error);
+
+    Swal.fire({
+      title: "Error",
+      text: error.message,
+      icon: "error",
+    });
+  }
 };
+
 
 // Attach event listeners to each form, passing the appropriate endpoint URL
 document.addEventListener("DOMContentLoaded", function () {
