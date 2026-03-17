@@ -315,6 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const upload = new tus.Upload(file, {
       endpoint: "/admin/tiffuploads",
       chunkSize: 2 * 1024 * 1024,
+      overridePatchMethod: true, // 🛡️ Bypasses Firewalls/WAFs that block PATCH methods
 
       metadata: {
         file_name: fileName,

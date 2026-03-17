@@ -20,6 +20,8 @@ const RASTER_DIR = "/data/raster_catalog"; // mounted SAN storage
    HELPERS
 ===================================================== */
 
+const SAFE_NAME = /^[a-zA-Z0-9_]+$/;
+
 function logTus(event, req, upload) {
   console.log(`[TUS] ${event}`, {
     method: req.method,
@@ -37,9 +39,17 @@ function logTus(event, req, upload) {
 
 tusServer.on("POST_CREATE", async (req, res, upload) => {
   const meta = upload.metadata || {};
-  const { file_name, theme } = meta;
+  const { file_name, theme, srid } = meta;
 
   if (!file_name || !theme) return;
+
+  // 🛡️ OWASP A01 & A03: Input Validation (Prevent Path Traversal & SQLi)
+  if (!SAFE_NAME.test(file_name) || !SAFE_NAME.test(theme)) {
+    throw Object.assign(new Error("Invalid metadata format for file_name or theme"), { status_code: 400 });
+  }
+  if (srid && !/^\d+$/.test(srid)) {
+    throw Object.assign(new Error("Invalid SRID format"), { status_code: 400 });
+  }
 
   const finalPath = path.join(
     process.cwd(),
@@ -97,6 +107,12 @@ tusServer.on("POST_FINISH", async (req, res, upload) => {
       return;
     }
 
+    // 🛡️ OWASP: Defense in depth validation before filesystem interaction
+    if (!SAFE_NAME.test(file_name) || !SAFE_NAME.test(theme)) {
+      console.warn("[TUS] Malicious metadata format detected during POST_FINISH.");
+      return;
+    }
+
     const finalDir = path.join(RASTER_DIR, theme);
 
     fs.mkdirSync(finalDir, { recursive: true });
@@ -138,7 +154,7 @@ tusServer.on("POST_FINISH", async (req, res, upload) => {
           if (fs.existsSync(upload.storage.path)) {
             fs.unlinkSync(upload.storage.path);
           }
-        } catch {}
+        } catch { }
 
         return;
       }
