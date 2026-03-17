@@ -284,12 +284,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!confirm.isConfirmed) return;
 
     const res = await fetch(`/admin/raster/precheck/${fileName}`);
-if (!res.ok) {
-  Swal.fire("Duplicate", "File already exists", "error");
-  return;
-}
+    if (!res.ok) {
+      Swal.fire("Duplicate", "File already exists", "error");
+      return;
+    }
 
-// only now start tus.Upload()
+    // only now start tus.Upload()
 
 
     /* ✅ PROGRESS POPUP */
@@ -312,59 +312,59 @@ if (!res.ok) {
 
     let uploadFailed = false;
 
-const upload = new tus.Upload(file, {
-  endpoint: "/admin/tiffuploads",
-  chunkSize: 10 * 1024 * 1024,
+    const upload = new tus.Upload(file, {
+      endpoint: "/admin/tiffuploads",
+      chunkSize: 5 * 1024 * 1024,
 
-  metadata: {
-    file_name: fileName,
-    theme: "raster",
-    srid: "4326",
-  },
+      metadata: {
+        file_name: fileName,
+        theme: "raster",
+        srid: "4326",
+      },
 
-  onProgress(bytesUploaded, bytesTotal) {
-    if (uploadFailed) return; // 🔴 STOP UI updates
+      onProgress(bytesUploaded, bytesTotal) {
+        if (uploadFailed) return; // 🔴 STOP UI updates
 
-    const pct = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
-    document.getElementById("uploadPercent").innerText = `${pct}%`;
-    document.getElementById("uploadBar").style.width = `${pct}%`;
-    console.log(`Raster upload ${pct}%`);
-  },
+        const pct = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
+        document.getElementById("uploadPercent").innerText = `${pct}%`;
+        document.getElementById("uploadBar").style.width = `${pct}%`;
+        console.log(`Raster upload ${pct}%`);
+      },
 
-  onSuccess() {
-    Swal.fire("Success", "Raster uploaded successfully", "success");
-  },
+      onSuccess() {
+        Swal.fire("Success", "Raster uploaded successfully", "success");
+      },
 
-  onError(error) {
-    uploadFailed = true; // 🔴 LOCK progress
+      onError(error) {
+        uploadFailed = true; // 🔴 LOCK progress
 
-    console.error("Tus error:", error);
+        console.error("Tus error:", error);
 
-    // Handle resume-invalid cases
-    if (error?.originalResponse?.getStatus?.() === 404 ||
-        error?.originalResponse?.getStatus?.() === 410) {
+        // Handle resume-invalid cases
+        if (error?.originalResponse?.getStatus?.() === 404 ||
+          error?.originalResponse?.getStatus?.() === 410) {
 
-      upload.removeFingerprint();
+          upload.removeFingerprint();
 
-      Swal.fire({
-        icon: "error",
-        title: "Upload rejected",
-        text: "A file with the same name already exists.",
-      });
+          Swal.fire({
+            icon: "error",
+            title: "Upload rejected",
+            text: "A file with the same name already exists.",
+          });
 
-      // Optional: reset progress UI
-      document.getElementById("uploadPercent").innerText = "0%";
-      document.getElementById("uploadBar").style.width = "0%";
-      return;
-    }
+          // Optional: reset progress UI
+          document.getElementById("uploadPercent").innerText = "0%";
+          document.getElementById("uploadBar").style.width = "0%";
+          return;
+        }
 
-    Swal.fire({
-      icon: "error",
-      title: "Upload failed",
-      text: "Upload failed. Please try again.",
+        Swal.fire({
+          icon: "error",
+          title: "Upload failed",
+          text: "Upload failed. Please try again.",
+        });
+      },
     });
-  },
-});
 
 
     /* ✅ RESUME SUPPORT */
