@@ -317,13 +317,6 @@ document.addEventListener('DOMContentLoaded', () => {
       chunkSize: 2 * 1024 * 1024,
       overridePatchMethod: true, // 🛡️ Bypasses Firewalls/WAFs that block PATCH methods
 
-      onBeforeRequest: function (req) {
-        const xhr = req.getUnderlyingObject();
-        // 🛡️ WAF Bypass: Mask the true Content-Type to avoid strict WAF rules
-        xhr.setRequestHeader("X-Tus-Content-Type", "application/offset+octet-stream");
-        xhr.setRequestHeader("Content-Type", "application/octet-stream");
-      },
-
       metadata: {
         file_name: fileName,
         theme: "raster",
