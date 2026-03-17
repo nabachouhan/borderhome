@@ -31,10 +31,17 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
-app.all("/admin/tiffuploads", adminAuthMiddleware, (req, res) => {
+const unmaskTusContentType = (req, res, next) => {
+  if (req.headers['x-tus-content-type']) {
+    req.headers['content-type'] = req.headers['x-tus-content-type'];
+  }
+  next();
+};
+
+app.all("/admin/tiffuploads", adminAuthMiddleware, unmaskTusContentType, (req, res) => {
   tusServer.handle(req, res);
 });
-app.all("/admin/tiffuploads/*", adminAuthMiddleware, (req, res) => {
+app.all("/admin/tiffuploads/*", adminAuthMiddleware, unmaskTusContentType, (req, res) => {
   tusServer.handle(req, res);
 });
 
@@ -47,7 +54,7 @@ const cspOptions = {
   useDefaults: true,
   directives: {
     defaultSrc: ["'self'"],
-    
+
     scriptSrc: [
       "'self'",
       "https://cdn.jsdelivr.net",
@@ -100,7 +107,7 @@ const cspOptions = {
     ],
 
     objectSrc: ["'none'"],
-//    upgradeInsecureRequests: [],
+    //    upgradeInsecureRequests: [],
   },
 };
 
