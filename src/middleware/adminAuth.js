@@ -22,6 +22,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Admin authentication middleware
 const adminAuthMiddleware = (req, res, next) => {
+  // Let CORS Preflight (OPTIONS) requests pass through
+  // so that components like tusServer can add protocol headers
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
   // Read JWT token from cookies
   const token = req.cookies.token;
   console.log("Checking token presence...");
@@ -32,7 +38,7 @@ const adminAuthMiddleware = (req, res, next) => {
       return JSON.parse(atob(token.split('.')[1]));
     } catch (error) {
       console.error(error);
-      
+
       return null;
     }
   }
