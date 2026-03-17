@@ -314,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const upload = new tus.Upload(file, {
       endpoint: "/admin/tiffuploads",
-      chunkSize: 5 * 1024 * 1024,
+      chunkSize: 2 * 1024 * 1024,
 
       metadata: {
         file_name: fileName,
