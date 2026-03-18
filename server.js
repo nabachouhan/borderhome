@@ -34,11 +34,21 @@ app.use(cookieParser());
 //    @tus/server must receive the raw stream for chunk uploads to work.
 // ─────────────────────────────────────────────────────────────
 
-// WAF BYPASS: restores TUS Content-Type the frontend disguised as
+// WAF BYPASS: restores TUS Content-Type that the frontend disguised as
 // "application/octet-stream" for WAF compatibility.
+// Two triggers to handle all cases:
+//   1. Client sent application/octet-stream  → our WAF bypass transform
+//   2. X-HTTP-Method-Override: PATCH present → this IS a TUS chunk, force it
 function restoreTusContentType(req, _res, next) {
-  if (req.headers['content-type'] === 'application/octet-stream') {
+  const ct = (req.headers['content-type'] || '').toLowerCase();
+  const methodOverride = (req.headers['x-http-method-override'] || '').toUpperCase();
+  const isTusChunk = methodOverride === 'PATCH';
+  const isWafDisguised = ct.startsWith('application/octet-stream');
+  const needsFix = isWafDisguised || (isTusChunk && !ct.startsWith('application/offset+octet-stream'));
+
+  if (needsFix) {
     req.headers['content-type'] = 'application/offset+octet-stream';
+    console.log(`[TUS] Content-Type restored: "${ct}" → application/offset+octet-stream`);
   }
   next();
 }
