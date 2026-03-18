@@ -314,51 +314,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ─────────────────────────────────────────────────────────────
     // 🛡️ WAF BYPASS: Custom HTTP stack
-    //   WAFs block the non-standard Content-Type that TUS uses:
-    //   "application/offset+octet-stream"
-    //   This custom stack rewrites it to "application/octet-stream" so
-    //   the WAF passes it. The Express restoreTusContentType middleware
-    //   rewrites it back before @tus/server sees the request.
+    //   WAFs block "application/offset+octet-stream"; we disguise it
+    //   as "application/octet-stream". The Express middleware restores
+    //   it before @tus/server sees the request.
     //
-    //   FIX: tus-js-client calls setHeader() BEFORE open(), but XHR
-    //   requires open() before setRequestHeader(). So we store headers
-    //   in a map and apply them all inside send(), after xhr.open().
+    //   Implements the full tus-js-client HttpRequest interface:
+    //   open(), setHeader(), setProgressHandler(), send(), abort()
     // ─────────────────────────────────────────────────────────────
     const wafFriendlyHttpStack = {
       createRequest(method, url) {
         const xhr = new XMLHttpRequest();
-        const pendingHeaders = {};  // deferred — applied in send() after open()
+        const pendingHeaders = {};   // deferred — applied in send() after open()
+        let progressHandler = null; // stored here, wired in send()
 
         return {
           getUnderlyingObject: () => xhr,
 
-          // Called by tus-js-client (may be called before or after setHeader)
-          open() {
-            // open() is a no-op here; we do the real open inside send()
-            // to guarantee open → setRequestHeader → send order
-          },
+          // no-op: real open() happens inside send() to guarantee order:
+          //   open → setRequestHeader → send
+          open() { },
 
-          // Store headers for later — do NOT touch XHR yet (not opened)
+          // Store only — do NOT call xhr.setRequestHeader() yet (XHR not open)
           setHeader(key, value) {
-            // Rewrite the TUS-specific Content-Type to a WAF-safe one
             pendingHeaders[key] =
               value === "application/offset+octet-stream"
-                ? "application/octet-stream"
+                ? "application/octet-stream"   // WAF-safe disguise
                 : value;
+          },
+
+          // Required by tus-js-client to report per-chunk upload progress
+          setProgressHandler(handler) {
+            progressHandler = handler;
           },
 
           send(body) {
             return new Promise((resolve, reject) => {
-              // 1️⃣ Open XHR first (required before setRequestHeader)
+              // 1️⃣ Open XHR (must be first)
               xhr.open(method, url, true);
-              xhr.withCredentials = true; // send cookies for adminAuth
+              xhr.withCredentials = true; // send httpOnly cookies for adminAuth
 
-              // 2️⃣ Now safely apply all stored headers
+              // 2️⃣ Apply all deferred headers now that XHR is OPENED
               Object.entries(pendingHeaders).forEach(([k, v]) => {
                 xhr.setRequestHeader(k, v);
               });
 
-              // 3️⃣ Wire up response handlers and send
+              // 3️⃣ Wire upload-progress so TUS can track chunk progress
+              if (progressHandler) {
+                xhr.upload.onprogress = (e) => {
+                  if (e.lengthComputable) progressHandler(e.loaded, e.total);
+                };
+              }
+
+              // 4️⃣ Wire response and send
               xhr.onload = () =>
                 resolve({
                   getStatus: () => xhr.status,
@@ -375,6 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
       },
     };
     // ─────────────────────────────────────────────────────────────
+
 
 
     const upload = new tus.Upload(file, {
