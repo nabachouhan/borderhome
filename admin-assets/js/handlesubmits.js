@@ -316,48 +316,66 @@ document.addEventListener('DOMContentLoaded', () => {
     // 🛡️ WAF BYPASS: Custom HTTP stack
     //   WAFs block the non-standard Content-Type that TUS uses:
     //   "application/offset+octet-stream"
-    //   This custom stack intercepts every outgoing XHR and silently
-    //   rewrites that header to the WAF-friendly "application/octet-stream".
-    //   The Express server middleware then rewrites it back before the
-    //   @tus/server ever sees the request.
+    //   This custom stack rewrites it to "application/octet-stream" so
+    //   the WAF passes it. The Express restoreTusContentType middleware
+    //   rewrites it back before @tus/server sees the request.
+    //
+    //   FIX: tus-js-client calls setHeader() BEFORE open(), but XHR
+    //   requires open() before setRequestHeader(). So we store headers
+    //   in a map and apply them all inside send(), after xhr.open().
     // ─────────────────────────────────────────────────────────────
     const wafFriendlyHttpStack = {
       createRequest(method, url) {
         const xhr = new XMLHttpRequest();
-        const headers = {};
+        const pendingHeaders = {};  // deferred — applied in send() after open()
+
         return {
           getUnderlyingObject: () => xhr,
+
+          // Called by tus-js-client (may be called before or after setHeader)
           open() {
-            xhr.open(method, url, true);
-            xhr.withCredentials = true; // send cookies (needed for adminAuth)
+            // open() is a no-op here; we do the real open inside send()
+            // to guarantee open → setRequestHeader → send order
           },
+
+          // Store headers for later — do NOT touch XHR yet (not opened)
           setHeader(key, value) {
-            // Rewrite the TUS-specific Content-Type to a WAF-allowed one
-            const finalValue =
+            // Rewrite the TUS-specific Content-Type to a WAF-safe one
+            pendingHeaders[key] =
               value === "application/offset+octet-stream"
                 ? "application/octet-stream"
                 : value;
-            headers[key] = finalValue;
-            xhr.setRequestHeader(key, finalValue);
           },
+
           send(body) {
             return new Promise((resolve, reject) => {
+              // 1️⃣ Open XHR first (required before setRequestHeader)
+              xhr.open(method, url, true);
+              xhr.withCredentials = true; // send cookies for adminAuth
+
+              // 2️⃣ Now safely apply all stored headers
+              Object.entries(pendingHeaders).forEach(([k, v]) => {
+                xhr.setRequestHeader(k, v);
+              });
+
+              // 3️⃣ Wire up response handlers and send
               xhr.onload = () =>
                 resolve({
                   getStatus: () => xhr.status,
                   getHeader: (name) => xhr.getResponseHeader(name),
                   getBody: () => xhr.responseText,
                 });
-              xhr.onerror = () =>
-                reject(new Error("Network request failed"));
+              xhr.onerror = () => reject(new Error("TUS network request failed"));
               xhr.send(body);
             });
           },
+
           abort() { xhr.abort(); },
         };
       },
     };
     // ─────────────────────────────────────────────────────────────
+
 
     const upload = new tus.Upload(file, {
       endpoint: "/admin/tiffuploads",
