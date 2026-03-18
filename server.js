@@ -25,18 +25,39 @@ const app = express();
 // ✔ Security header
 app.disable("x-powered-by");
 
-// ✅ GLOBAL middleware FIRST
+// ✅ GLOBAL middleware FIRST (cookieParser only — bodyParser comes AFTER TUS)
 app.use(cookieParser());
+
+// ─────────────────────────────────────────────────────────────
+// 🛡️ TUS UPLOAD ROUTES — MUST be before bodyParser
+//    bodyParser.json() and urlencoded() consume the request stream.
+//    @tus/server must receive the raw stream for chunk uploads to work.
+// ─────────────────────────────────────────────────────────────
+
+// WAF BYPASS: restores TUS Content-Type the frontend disguised as
+// "application/octet-stream" for WAF compatibility.
+function restoreTusContentType(req, _res, next) {
+  if (req.headers['content-type'] === 'application/octet-stream') {
+    req.headers['content-type'] = 'application/offset+octet-stream';
+  }
+  next();
+}
+
+app.all("/admin/tiffuploads", adminAuthMiddleware, restoreTusContentType, (req, res) => {
+  tusServer.handle(req, res);
+});
+app.all("/admin/tiffuploads/*", adminAuthMiddleware, restoreTusContentType, (req, res) => {
+  tusServer.handle(req, res);
+});
+
+// ─────────────────────────────────────────────────────────────
+// Body parsers for all other routes (after TUS so they don't
+// interfere with the TUS raw stream)
+// ─────────────────────────────────────────────────────────────
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
-app.all("/admin/tiffuploads", adminAuthMiddleware, (req, res) => {
-  tusServer.handle(req, res);
-});
-app.all("/admin/tiffuploads/*", adminAuthMiddleware, (req, res) => {
-  tusServer.handle(req, res);
-});
 
 
 // 🔐 Serve protected folder only if authenticated
@@ -134,6 +155,7 @@ app.use('/', router);
 
 // Start the server
 const PORT = process.env.PORT || 4100;
-app.listen(PORT, () => {
-  console.log(`127.0.0.1:${PORT} listening on port ${PORT}`);
+const HOST = '0.0.0.0';
+app.listen(PORT, HOST, () => {
+  console.log(`[${HOST}]:${PORT} listening on port ${PORT}`);
 });

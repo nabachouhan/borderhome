@@ -312,10 +312,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let uploadFailed = false;
 
+    // ─────────────────────────────────────────────────────────────
+    // 🛡️ WAF BYPASS: Custom HTTP stack
+    //   WAFs block the non-standard Content-Type that TUS uses:
+    //   "application/offset+octet-stream"
+    //   This custom stack intercepts every outgoing XHR and silently
+    //   rewrites that header to the WAF-friendly "application/octet-stream".
+    //   The Express server middleware then rewrites it back before the
+    //   @tus/server ever sees the request.
+    // ─────────────────────────────────────────────────────────────
+    const wafFriendlyHttpStack = {
+      createRequest(method, url) {
+        const xhr = new XMLHttpRequest();
+        const headers = {};
+        return {
+          getUnderlyingObject: () => xhr,
+          open() {
+            xhr.open(method, url, true);
+            xhr.withCredentials = true; // send cookies (needed for adminAuth)
+          },
+          setHeader(key, value) {
+            // Rewrite the TUS-specific Content-Type to a WAF-allowed one
+            const finalValue =
+              value === "application/offset+octet-stream"
+                ? "application/octet-stream"
+                : value;
+            headers[key] = finalValue;
+            xhr.setRequestHeader(key, finalValue);
+          },
+          send(body) {
+            return new Promise((resolve, reject) => {
+              xhr.onload = () =>
+                resolve({
+                  getStatus: () => xhr.status,
+                  getHeader: (name) => xhr.getResponseHeader(name),
+                  getBody: () => xhr.responseText,
+                });
+              xhr.onerror = () =>
+                reject(new Error("Network request failed"));
+              xhr.send(body);
+            });
+          },
+          abort() { xhr.abort(); },
+        };
+      },
+    };
+    // ─────────────────────────────────────────────────────────────
+
     const upload = new tus.Upload(file, {
       endpoint: "/admin/tiffuploads",
       chunkSize: 2 * 1024 * 1024,
-      overridePatchMethod: true, // 🛡️ Bypasses Firewalls/WAFs that block PATCH methods
+      overridePatchMethod: true,  // POST + X-HTTP-Method-Override: PATCH
+      httpStack: wafFriendlyHttpStack, // 🛡️ WAF-safe Content-Type
 
       metadata: {
         file_name: fileName,

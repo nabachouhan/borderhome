@@ -12,6 +12,10 @@ fs.mkdirSync(tempDir, { recursive: true });
 export const tusServer = new Server({
   path: "/admin/tiffuploads",
   datastore: new FileStore({ directory: tempDir }),
+  // ✅ Uses X-Forwarded-Proto + Host headers from Nginx to build correct
+  //    Location URLs in 201 responses. Without this, Location points to
+  //    http://localhost:3000/... which browsers cannot reach → HEAD 502.
+  respectForwardedHeaders: true,
 });
 
 const RASTER_DIR = "/data/raster_catalog"; // mounted SAN storage 
