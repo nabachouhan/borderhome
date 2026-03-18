@@ -53,12 +53,24 @@ function restoreTusContentType(req, _res, next) {
   next();
 }
 
-app.all("/admin/tiffuploads", adminAuthMiddleware, restoreTusContentType, (req, res) => {
+function handleTus(req, res) {
+  // 🔍 DIAGNOSTIC: log every TUS request+response so we can see
+  //    if 403 comes from Express/TUS (log appears) or from WAF (no log)
+  res.on('finish', () => {
+    console.log(
+      `[TUS] ${req.method} ${req.path}` +
+      ` | status=${res.statusCode}` +
+      ` | override=${req.headers['x-http-method-override'] || '-'}` +
+      ` | ct=${req.headers['content-type'] || '-'}` +
+      ` | cookie=${req.cookies?.token ? 'present' : 'MISSING'}`
+    );
+  });
   tusServer.handle(req, res);
-});
-app.all("/admin/tiffuploads/*", adminAuthMiddleware, restoreTusContentType, (req, res) => {
-  tusServer.handle(req, res);
-});
+}
+
+app.all("/admin/tiffuploads", adminAuthMiddleware, restoreTusContentType, handleTus);
+app.all("/admin/tiffuploads/*", adminAuthMiddleware, restoreTusContentType, handleTus);
+
 
 // ─────────────────────────────────────────────────────────────
 // Body parsers for all other routes (after TUS so they don't
