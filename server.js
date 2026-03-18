@@ -44,6 +44,13 @@ function restoreTusContentType(req, _res, next) {
   const methodOverride = (req.headers['x-http-method-override'] || '').toUpperCase();
   const isTusChunk = methodOverride === 'PATCH';
   const isWafDisguised = ct.startsWith('application/octet-stream');
+
+  // Actually apply the METHOD OVERRIDE for @tus/server
+  // Modern @tus/server v2+ delegates HTTP method resolution to Express.
+  if (isTusChunk) {
+    req.method = 'PATCH';
+  }
+
   const needsFix = isWafDisguised || (isTusChunk && !ct.startsWith('application/offset+octet-stream'));
 
   if (needsFix) {
