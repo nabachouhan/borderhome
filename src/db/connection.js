@@ -22,7 +22,7 @@ const administrativepl = new Pool({
 
 // 👉 Theme-based pool map
 const themeDatabases = {
-  administratives: process.env.Administratives_db,
+  administratives: process.env.administratives_db,
   aoi: process.env.aoi_db,
   lulc: process.env.lulc_db,
   lulcchange: process.env.lulcchange_db,
