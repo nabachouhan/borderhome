@@ -710,6 +710,7 @@ router.get("/catalog/:file_name", async (req, res) => {
     const group_visibility = result.rows[0].group_visibility;
     const data_abstract = result.rows[0].data_abstract;
     const metadata_date = result.rows[0].metadata_date;
+    const year_category = result.rows[0].year_category;
     const area_of_interest = result.rows[0].area_of_interest;
 
     const data_quality = result.rows[0].data_quality;
@@ -775,6 +776,7 @@ router.get("/catalog/:file_name", async (req, res) => {
         group_visibility: group_visibility,
         data_abstract: data_abstract,
         metadata_date: metadata_date,
+        year_category: year_category,
         area_of_interest: area_of_interest,
         data_quality: data_quality,
         projection: projection,
@@ -809,6 +811,7 @@ router.post("/metadata", adminAuthMiddleware, upload.none(), async (req, res) =>
     public_access_level,
     citation,
     source_date,
+    year_category,
     group_visibility,
     data_abstract,
     area_of_interest,
@@ -837,12 +840,13 @@ router.post("/metadata", adminAuthMiddleware, upload.none(), async (req, res) =>
           data_abstract = $8,
           area_of_interest = $9,
           metadata_date = $10,
-          data_quality = $11,
-          language = $12,
-          projection = $13,
-          scale = $14,
-          edit_mode = $15
-        WHERE file_name = $16
+          year_category = $11,
+          data_quality = $12,
+          language = $13,
+          projection = $14,
+          scale = $15,
+          edit_mode = $16
+        WHERE file_name = $17
       `,
       [
         title,
@@ -855,6 +859,7 @@ router.post("/metadata", adminAuthMiddleware, upload.none(), async (req, res) =>
         data_abstract,
         area_of_interest,
         metadata_date,
+        year_category,
         data_quality,
         language,
         projection,

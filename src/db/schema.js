@@ -37,7 +37,8 @@ async function createTables() {
         scale VARCHAR(15),
         visibility BOOLEAN NOT NULL,
         is_published BOOLEAN NOT NULL,
-        edit_mode BOOLEAN  NOT NULL DEFAULT true
+        edit_mode BOOLEAN  NOT NULL DEFAULT true,
+        year_category TEXT
       ); 
 
 
